@@ -4,23 +4,41 @@ from PIL import Image
 import numpy as np
 import torch
 import torchvision.transforms as transforms
-from model import Net
-
+from efficientnet_pytorch import EfficientNet
 
 def main():
     # Load the classes
     data_dir = pathlib.Path('./data/tiny-imagenet-200/train/')
     CLASSES = sorted([item.name for item in data_dir.glob('*')])
     im_height, im_width = 64, 64
+    model_name = 'efficientnet-b4'
+    ckpt_name = 'best.pt'
 
-    ckpt = torch.load('latest.pt')
-    model = Net(len(CLASSES), im_height, im_width)
-    model.load_state_dict(ckpt['net'])
+    input_sizes = {
+        'efficientnet-b0': 224,
+        'efficientnet-b1': 240,
+        'efficientnet-b2': 260,
+        'efficientnet-b3': 300,
+        'efficientnet-b4': 380,
+        'efficientnet-b5': 456,
+        'efficientnet-b6': 528,
+        'efficientnet-b7': 600,
+    }
+    
+    ckpt = torch.load(ckpt_name)
+    model = EfficientNet.from_pretrained(model_name, num_classes=len(CLASSES), advprop=True)
+    model.load_state_dict(ckpt)
+
+    if torch.cuda.is_available():
+        model = model.to(torch.device('cuda'))
+
     model.eval()
 
     data_transforms = transforms.Compose([
+        transforms.Resize(input_sizes[model_name]),
+        transforms.CenterCrop(input_sizes[model_name]),
         transforms.ToTensor(),
-        transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
     # Loop through the CSV file and make a prediction for each line
@@ -33,6 +51,8 @@ def main():
             with open(image_path, 'rb') as f:
                 img = Image.open(f).convert('RGB')
             img = data_transforms(img)[None, :]
+            if torch.cuda.is_available():
+                img = img.to(torch.device('cuda'))
             outputs = model(img)
             _, predicted = outputs.max(1)
 
