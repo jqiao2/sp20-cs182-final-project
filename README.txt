@@ -7,4 +7,8 @@ test_submission.py - A sample file which will return an ouput for every input in
 		     It also contains the definition of our model, an EfficientNet.
 best.ckpt - A PyTorch checkpoint file that contains the weights of the best model we trained
 
+notebooks/ - Contains notebooks we used for training, validation, evaluation and visualization
+
+debluring_gan/ and .ipynb_checkpoints/ - Contain all work related to deblurring GAN
+
 We have only tested this code using Python 3. It may or may not be Python 2 compatible.
